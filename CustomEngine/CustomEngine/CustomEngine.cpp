@@ -18,6 +18,11 @@ ComPtr<IDXGISwapChain3> g_swapChain;            // Swap Chain
 #include "framework.h"
 #include "CustomEngine.h"
 
+ComPtr<ID3D12DescriptorHeap> g_rtvHeap; // RTV Heap
+bool InitializeDX12(HINSTANCE hInstance);
+
+HWND g_hWnd = nullptr;
+
 #define MAX_LOADSTRING 100
 
 // 전역 변수:
@@ -117,16 +122,17 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
    hInst = hInstance; // 인스턴스 핸들을 전역 변수에 저장합니다.
 
-   HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
-      CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, nullptr, hInstance, nullptr);
 
-   if (!hWnd)
+   g_hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
+       CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, nullptr, hInstance, nullptr);
+
+   if (!g_hWnd)
    {
       return FALSE;
    }
 
-   ShowWindow(hWnd, nCmdShow);
-   UpdateWindow(hWnd);
+   ShowWindow(g_hWnd, nCmdShow);
+   UpdateWindow(g_hWnd);
 
    return TRUE;
 }
@@ -186,7 +192,73 @@ bool InitializeDX12(HINSTANCE hInstance)
     hr = g_d3dDevice->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&g_commandQueue));
     if (FAILED(hr)) return false;
 
-    return true;
+    // ------------------------------------
+    // 4. Swap Chain 및 RTV Descriptor Heap 생성
+    // ------------------------------------
+
+    // 4-1. 창 크기 계산 및 Swap Chain 설정
+    RECT clientRect;
+    GetClientRect(g_hWnd, &clientRect); // 창의 현재 클라이언트 영역 크기를 가져옵니다.
+    int width = clientRect.right - clientRect.left;
+    int height = clientRect.bottom - clientRect.top;
+
+    // 1. Swap Chain 구조체 이름 변경 (DESC -> DESC1)
+    DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
+
+    // 2. BufferDesc 제거 및 필드를 최상위 멤버로 이동
+    swapChainDesc.Width = width;
+    swapChainDesc.Height = height;
+
+    // 4. Format 설정 (BufferDesc.Format -> Format)
+    swapChainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+
+    // 5. SampleDesc는 그대로 최상위 멤버입니다.
+    swapChainDesc.SampleDesc.Count = 1;
+    swapChainDesc.SampleDesc.Quality = 0;
+
+    // 6. 나머지 멤버는 그대로 사용합니다.
+    swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+    swapChainDesc.BufferCount = 2; // 더블 버퍼링 (Back Buffer 1개 + Front Buffer 1개)
+    swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD; // Flip 모델 사용
+    swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
+
+    // 7. DXGI_SWAP_CHAIN_DESC1에 추가된 필수 필드 (AlphaMode)
+    swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;
+
+    // 4-2. Swap Chain 생성
+    // IDXGIFactory4::CreateSwapChain 대신 IDXGIFactory4::CreateSwapChainForHwnd 사용
+    ComPtr<IDXGISwapChain1> swapChain;
+    hr = g_dxgiFactory->CreateSwapChainForHwnd(
+        g_commandQueue.Get(),  // Swap Chain은 Command Queue를 통해 프레젠트됨
+        g_hWnd,
+        &swapChainDesc,
+        nullptr,
+        nullptr,
+        &swapChain);
+
+    if (FAILED(hr)) return false;
+
+    // 생성된 IDXGISwapChain을 IDXGISwapChain3로 캐스팅합니다.
+    hr = swapChain.As(&g_swapChain);
+    if (FAILED(hr)) return false;
+
+
+    // 4-3. RTV Descriptor Heap 생성
+    D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
+    rtvHeapDesc.NumDescriptors = swapChainDesc.BufferCount; // 버퍼 수만큼 RTV가 필요
+    rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+    rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+
+    hr = g_d3dDevice->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&g_rtvHeap));
+    if (FAILED(hr)) return false;
+
+
+    // 4-4. RTV 생성 및 핸들 저장 (다음 단계에서 자세히 다룰 예정)
+    // RTV (Render Target View)는 렌더링할 메모리(Swap Chain의 버퍼)를 가리키는 뷰입니다.
+
+    // ... 이어서 RTV 생성 및 Command Allocator/List 생성 코드가 필요합니다.
+
+    return true; // 성공적으로 초기화 완료
 }
 
 //

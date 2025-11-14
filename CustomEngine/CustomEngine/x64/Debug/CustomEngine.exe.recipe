@@ -2,10 +2,14 @@
 <Project>
   <ProjectOutputs>
     <ProjectOutput>
-      <FullPath>K:\download\CustomEngine\CustomEngine\x64\Debug\CustomEngine.exe</FullPath>
+      <FullPath>K:\download\CustomEngine\customEngine\x64\Debug\CustomEngine.exe</FullPath>
     </ProjectOutput>
   </ProjectOutputs>
-  <ContentFiles />
+  <ContentFiles>
+    <ContentFile>
+      <FullPath>K:\download\CustomEngine\customEngine\x64\Debug\Shader.cso</FullPath>
+    </ContentFile>
+  </ContentFiles>
   <SatelliteDlls />
   <NonRecipeFileRefs />
 </Project>

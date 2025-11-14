@@ -76,11 +76,15 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <AdditionalIncludeDirectories>K:\download\CustomEngine\CustomEngine\directx</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>d3d12.lib;dxgi.lib;d3dcompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <EntryPointSymbol>
+      </EntryPointSymbol>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -91,11 +95,15 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <AdditionalIncludeDirectories>K:\download\CustomEngine\CustomEngine\directx</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>d3d12.lib;dxgi.lib;d3dcompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <EntryPointSymbol>
+      </EntryPointSymbol>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -104,11 +112,15 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <AdditionalIncludeDirectories>K:\download\CustomEngine\CustomEngine\directx</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>d3d12.lib;dxgi.lib;d3dcompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <EntryPointSymbol>
+      </EntryPointSymbol>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -119,14 +131,44 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <AdditionalIncludeDirectories>K:\download\CustomEngine\CustomEngine\directx</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>d3d12.lib;dxgi.lib;d3dcompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <EntryPointSymbol>
+      </EntryPointSymbol>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\d3d12.h" />
+    <ClInclude Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\d3d12compatibility.h" />
+    <ClInclude Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\d3d12compiler.h" />
+    <ClInclude Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\d3d12sdklayers.h" />
+    <ClInclude Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\d3d12shader.h" />
+    <ClInclude Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\D3D12TokenizedProgramFormat.hpp" />
+    <ClInclude Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\d3d12video.h" />
+    <ClInclude Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\d3dcommon.h" />
+    <ClInclude Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\d3dshadercacheregistration.h" />
+    <ClInclude Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\d3dx12.h" />
+    <ClInclude Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\d3dx12_barriers.h" />
+    <ClInclude Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\d3dx12_check_feature_support.h" />
+    <ClInclude Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\d3dx12_core.h" />
+    <ClInclude Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\d3dx12_default.h" />
+    <ClInclude Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\d3dx12_pipeline_state_stream.h" />
+    <ClInclude Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\d3dx12_property_format_table.h" />
+    <ClInclude Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\d3dx12_render_pass.h" />
+    <ClInclude Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\d3dx12_resource_helpers.h" />
+    <ClInclude Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\d3dx12_root_signature.h" />
+    <ClInclude Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\d3dx12_state_object.h" />
+    <ClInclude Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\DirectML.h" />
+    <ClInclude Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\dxcore.h" />
+    <ClInclude Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\dxcore_interface.h" />
+    <ClInclude Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\dxgicommon.h" />
+    <ClInclude Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\dxgiformat.h" />
+    <ClInclude Include="..\directx\d3dx12.h" />
     <ClInclude Include="CustomEngine.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="Resource.h" />
@@ -141,6 +183,31 @@
   <ItemGroup>
     <Image Include="CustomEngine.ico" />
     <Image Include="small.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="Shader.hlsl">
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">VSMain</EntryPointName>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">VSMain</EntryPointName>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">VSMain</EntryPointName>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">VSMain</EntryPointName>
+    </FxCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Midl Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\d3d12.idl" />
+    <Midl Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\d3d12compatibility.idl" />
+    <Midl Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\d3d12compiler.idl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </Midl>
+    <Midl Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\D3D12MarkerApiEnums.idl" />
+    <Midl Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\d3d12sdklayers.idl" />
+    <Midl Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\d3d12video.idl" />
+    <Midl Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\d3dcommon.idl" />
+    <Midl Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\d3dshadercacheregistration.idl" />
+    <Midl Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\dxgicommon.idl" />
+    <Midl Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\dxgiformat.idl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

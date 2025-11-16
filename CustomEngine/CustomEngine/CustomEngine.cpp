@@ -10,53 +10,9 @@
 #include <wrl/client.h>
 using Microsoft::WRL::ComPtr;
 
-// ====================================================================
-// DX12 전역 변수 (Global Variables)
-// ====================================================================
-ComPtr<ID3D12Device> g_d3dDevice;               // D3D12 Device
-ComPtr<IDXGIFactory4> g_dxgiFactory;            // DXGI Factory
-ComPtr<ID3D12CommandQueue> g_commandQueue;      // Command Queue
-ComPtr<IDXGISwapChain3> g_swapChain;            // Swap Chain
-
 #include "framework.h"
 #include "CustomEngine.h"
 
-ComPtr<ID3D12DescriptorHeap> g_rtvHeap; // RTV Heap
-bool InitializeDX12(HINSTANCE hInstance);
-
-HWND g_hWnd = nullptr;
-
-#define MAX_LOADSTRING 100
-
-// 전역 변수:
-HINSTANCE hInst;                                // 현재 인스턴스입니다.
-WCHAR szTitle[MAX_LOADSTRING];                  // 제목 표시줄 텍스트입니다.
-WCHAR szWindowClass[MAX_LOADSTRING];            // 기본 창 클래스 이름입니다.
-
-// 이 코드 모듈에 포함된 함수의 선언을 전달합니다:
-ATOM                MyRegisterClass(HINSTANCE hInstance);
-BOOL                InitInstance(HINSTANCE, int);
-LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
-INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
-
-ComPtr<ID3D12CommandAllocator> g_commandAllocator = nullptr; 
-ComPtr<ID3D12GraphicsCommandList> g_commandList = nullptr;   
-
-ComPtr<ID3D12RootSignature> g_rootSignature; 
-
-ComPtr<ID3D12Fence> g_fence;
-UINT64 g_fenceValue = 0;
-
-// PSO 객체 정의 추가
-ComPtr<ID3D12PipelineState> g_pipelineState;
-
-struct Vertex
-{
-    float x, y, z;
-};
-
-ComPtr<ID3D12Resource> g_vertexBuffer;
-D3D12_VERTEX_BUFFER_VIEW g_vertexBufferView;
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
@@ -320,6 +276,23 @@ bool InitializeDX12(HINSTANCE hInstance)
     // Fence 생성: CPU-GPU 동기화를 위한 객체
     hr = g_d3dDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&g_fence)); // 🚨 g_fence 생성
     if (FAILED(hr)) return false;
+
+    UINT rtvDescriptorSize = g_d3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+    CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(g_rtvHeap->GetCPUDescriptorHandleForHeapStart());
+
+    // Swap Chain의 각 버퍼에 대한 RTV를 생성합니다.
+    for (UINT i = 0; i < g_frameCount; i++)
+    {
+        //1. Swap Chain에서 i번째 Back Buffer 리소스 가져오기 및 전역 변수에 저장
+        HRESULT hr = g_swapChain->GetBuffer(i, IID_PPV_ARGS(&g_renderTargets[i]));
+        if (FAILED(hr)) return false;
+
+        // 2. 해당 리소스에 대한 RTV를 생성하여 Heap에 기록합니다.
+        g_d3dDevice->CreateRenderTargetView(g_renderTargets[i].Get(), nullptr, rtvHandle);
+
+        // 3. 다음 RTV를 만들 위치로 핸들을 이동합니다.
+        rtvHandle.Offset(1, rtvDescriptorSize);
+    }
 
     return true; // 성공적으로 초기화 완료
 }
@@ -602,18 +575,29 @@ void Render()
     // 3. 리소스 배리어 (Present -> Render Target)
     UINT currentBackBuffer = g_swapChain->GetCurrentBackBufferIndex();
 
-    // ⚠️ 이 코드는 g_rtvResource 전역 변수가 필요하며, 리소스 배리어를 위한 
+    // Resource Barrier: Present 상태에서 Render Target 상태로 전환
+    const D3D12_RESOURCE_BARRIER barrier_to_rt = CD3DX12_RESOURCE_BARRIER::Transition(
+        g_renderTargets[currentBackBuffer].Get(),
+        D3D12_RESOURCE_STATE_PRESENT,
+        D3D12_RESOURCE_STATE_RENDER_TARGET);
+
+    g_commandList->ResourceBarrier(1, &barrier_to_rt); // 로컬 변수의 주소 전달
+
+    // 이 코드는 g_rtvResource 전역 변수가 필요하며, 리소스 배리어를 위한 
     // 백 버퍼 리소스 객체(ID3D12Resource)를 미리 확보해 두어야 합니다.
     // 임시로 GetBuffer를 사용하지만, 실제 코드에서는 매 프레임마다 리소스 핸들을 
     // 가져와 사용합니다. 이 부분은 구조적인 개선이 필요합니다.
 
     // 4. Back Buffer 클리어 및 대상 설정
     // RTV 핸들 설정 (임시 코드: 실제 RTV 핸들 설정 로직은 InitializeDX12에 있음)
-    // CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(...)
-    // g_commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
+    UINT rtvDescriptorSize = g_d3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+    CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(g_rtvHeap->GetCPUDescriptorHandleForHeapStart(), currentBackBuffer, rtvDescriptorSize);
+
+    //Render Target 설정
+    g_commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
 
     const float clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f }; // 파란색
-    // g_commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
+    g_commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
 
     // 5. 드로잉 명령 기록
     g_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -622,6 +606,13 @@ void Render()
     g_commandList->DrawInstanced(3, 1, 0, 0);
 
     // 6. 리소스 배리어 (Render Target -> Present)
+    // 
+    const D3D12_RESOURCE_BARRIER barrier_to_present = CD3DX12_RESOURCE_BARRIER::Transition(
+        g_renderTargets[currentBackBuffer].Get(),
+        D3D12_RESOURCE_STATE_RENDER_TARGET,
+        D3D12_RESOURCE_STATE_PRESENT);
+
+    g_commandList->ResourceBarrier(1, &barrier_to_present); // 로컬 변수의 주소 전달
     // ...
 
     // 7. Command Queue에 제출 및 Present

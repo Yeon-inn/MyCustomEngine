@@ -1,4 +1,5 @@
-﻿#include <string>
+﻿#include <windows.h> // LRESULT, HWND 등 Win32 기본 타입 정의를 위해 필수
+#include <string>
 
 // DX12 관련 헤더
 #include <dxgi1_6.h>        // DXGI 팩토리 및 어댑터 열거
@@ -13,6 +14,17 @@ using Microsoft::WRL::ComPtr;
 #include "framework.h"
 #include "CustomEngine.h"
 
+// ImGui Core
+#include "imgui.h" 
+#include "imgui_internal.h" // 일부 내부 정의를 위해 필요할 수 있습니다.
+
+// ImGui Backends
+#include "imgui_impl_win32.h"
+#include "imgui_impl_dx12.h"
+
+
+IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+ComPtr<ID3D12DescriptorHeap> g_imguiSrvHeap; // ImGui 폰트 텍스처용 Heap   
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
@@ -294,6 +306,33 @@ bool InitializeDX12(HINSTANCE hInstance)
         rtvHandle.Offset(1, rtvDescriptorSize);
     }
 
+    // (1) ImGui용 SRV Descriptor Heap 생성 (폰트 텍스처용)
+    D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
+    heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+    heapDesc.NumDescriptors = 1;
+    heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+    hr = g_d3dDevice->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&g_imguiSrvHeap));
+    if (FAILED(hr)) return false;
+
+    // (2) ImGui Core 및 Win32 백엔드 초기화
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    // ImGui::StyleColorsDark(); // (선택 사항)
+
+    ImGui_ImplWin32_Init(g_hWnd); // Win32 창 핸들 연결
+
+    ImGuiIO& io = ImGui::GetIO();
+    unsigned char* pixels;
+    io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
+
+    // (3) ImGui DX12 백엔드 연결
+    ImGui_ImplDX12_Init(g_d3dDevice.Get(),
+        g_frameCount,
+        DXGI_FORMAT_R8G8B8A8_UNORM, // Swap Chain 포맷
+        g_imguiSrvHeap.Get(),
+        g_imguiSrvHeap->GetCPUDescriptorHandleForHeapStart(),
+        g_imguiSrvHeap->GetGPUDescriptorHandleForHeapStart());
+
     return true; // 성공적으로 초기화 완료
 }
 
@@ -309,6 +348,11 @@ bool InitializeDX12(HINSTANCE hInstance)
 //
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+
+    // 1. ImGui 입력 처리기 호출 (가장 먼저 실행하여 메시지 선점)
+    if (ImGui_ImplWin32_WndProcHandler(hWnd, message, wParam, lParam))
+        return true;
+
     switch (message)
     {
     case WM_COMMAND:
@@ -555,11 +599,46 @@ bool CreateVertexBuffers()
 
 void Render()
 {
-    // 1. Command List Reset
+    // ----------------------------------------------------
+    // 1. ImGui 프레임 시작 및 UI 정의 (CPU 작업 - Command Reset 이전에 수행)
+    // ----------------------------------------------------
+    // **ImGui가 입력 및 UI 데이터를 준비하는 단계**
+    ImGui_ImplDX12_NewFrame();
+    ImGui_ImplWin32_NewFrame();
+    ImGui::NewFrame();
+
+    // UI 정의 (화면에 표시될 내용)
+    ImGui::Begin("DX12 Editor");
+    ImGui::Text("Render Loop is Active.");
+    // 여기에 File Load 버튼과 ImGuizmo 코드가 들어갈 예정입니다.
+    if (ImGui::Button("Load FBX Model"))
+    {
+        // ⚠️ TODO: 파일 대화 상자 함수 호출
+        std::wstring filePath = OpenFileLoadDialog();
+
+        if (!filePath.empty())
+        {
+            // TODO: (다음 스텝) Assimp 로딩 함수를 호출하고 filePath를 인자로 전달
+            OutputDebugStringW(L"Selected file: ");
+            OutputDebugStringW(filePath.c_str());
+            OutputDebugStringW(L"\n");
+
+            // LoadModel(filePath); // <- 최종적으로 여기에 FBX 로더가 연결됩니다.
+        }
+    }
+    ImGui::End();
+
+    // ImGui 렌더링 준비 (Draw Data를 최종 생성)
+    ImGui::Render();
+
+
+    // ----------------------------------------------------
+    // 2. Command List Reset 및 파이프라인 설정 (DX12 Setup)
+    // ----------------------------------------------------
     g_commandAllocator->Reset();
     g_commandList->Reset(g_commandAllocator.Get(), g_pipelineState.Get());
 
-    // 2. 파이프라인 설정 (Viewport, Scissor Rect, Root Signature)
+    // Viewport, Scissor Rect, Root Signature 설정
     RECT clientRect;
     GetClientRect(g_hWnd, &clientRect);
     int width = clientRect.right - clientRect.left;
@@ -572,53 +651,128 @@ void Render()
     g_commandList->RSSetScissorRects(1, &scissorRect);
     g_commandList->SetGraphicsRootSignature(g_rootSignature.Get());
 
-    // 3. 리소스 배리어 (Present -> Render Target)
+    // ----------------------------------------------------
+    // 3. Back Buffer 설정 및 3D 씬 그리기 (Triangle)
+    // ----------------------------------------------------
     UINT currentBackBuffer = g_swapChain->GetCurrentBackBufferIndex();
 
-    // Resource Barrier: Present 상태에서 Render Target 상태로 전환
+    // (3A) 리소스 배리어: Present -> Render Target 상태 전환
     const D3D12_RESOURCE_BARRIER barrier_to_rt = CD3DX12_RESOURCE_BARRIER::Transition(
         g_renderTargets[currentBackBuffer].Get(),
         D3D12_RESOURCE_STATE_PRESENT,
         D3D12_RESOURCE_STATE_RENDER_TARGET);
+    g_commandList->ResourceBarrier(1, &barrier_to_rt);
 
-    g_commandList->ResourceBarrier(1, &barrier_to_rt); // 로컬 변수의 주소 전달
-
-    // 이 코드는 g_rtvResource 전역 변수가 필요하며, 리소스 배리어를 위한 
-    // 백 버퍼 리소스 객체(ID3D12Resource)를 미리 확보해 두어야 합니다.
-    // 임시로 GetBuffer를 사용하지만, 실제 코드에서는 매 프레임마다 리소스 핸들을 
-    // 가져와 사용합니다. 이 부분은 구조적인 개선이 필요합니다.
-
-    // 4. Back Buffer 클리어 및 대상 설정
-    // RTV 핸들 설정 (임시 코드: 실제 RTV 핸들 설정 로직은 InitializeDX12에 있음)
+    // RTV 핸들 설정 및 클리어
     UINT rtvDescriptorSize = g_d3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
     CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(g_rtvHeap->GetCPUDescriptorHandleForHeapStart(), currentBackBuffer, rtvDescriptorSize);
 
-    //Render Target 설정
     g_commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
 
     const float clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f }; // 파란색
     g_commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
 
-    // 5. 드로잉 명령 기록
+    // (3B) 3D Draw Call (삼각형 그리기)
     g_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     g_commandList->IASetVertexBuffers(0, 1, &g_vertexBufferView);
     g_commandList->SetPipelineState(g_pipelineState.Get()); // PSO 설정
     g_commandList->DrawInstanced(3, 1, 0, 0);
 
-    // 6. 리소스 배리어 (Render Target -> Present)
-    // 
+
+    // ----------------------------------------------------
+    // 4. ImGui Draw (UI를 3D 씬 위에 덮어쓰기)
+    // ----------------------------------------------------
+    // **3D 씬을 다 그린 직후에 UI를 그려야 합니다.**
+
+    // (4A) ImGui 폰트 텍스처를 사용하도록 Descriptor Heap 설정
+    ID3D12DescriptorHeap* ppHeaps[] = { g_imguiSrvHeap.Get() };
+    g_commandList->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
+
+    // (4B) ImGui 드로잉 명령을 Command List에 기록 (최종 드로우 명령)
+    ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), g_commandList.Get());
+
+
+    // ----------------------------------------------------
+    // 5. 실행 및 Present (마무리)
+    // ----------------------------------------------------
+
+    // (5A) 리소스 배리어: Render Target -> Present 상태 전환
     const D3D12_RESOURCE_BARRIER barrier_to_present = CD3DX12_RESOURCE_BARRIER::Transition(
         g_renderTargets[currentBackBuffer].Get(),
         D3D12_RESOURCE_STATE_RENDER_TARGET,
         D3D12_RESOURCE_STATE_PRESENT);
+    g_commandList->ResourceBarrier(1, &barrier_to_present);
 
-    g_commandList->ResourceBarrier(1, &barrier_to_present); // 로컬 변수의 주소 전달
-    // ...
-
-    // 7. Command Queue에 제출 및 Present
+    // (5B) Command Queue에 제출 및 Present
     g_commandList->Close();
     ID3D12CommandList* ppCommandLists[] = { g_commandList.Get() };
     g_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 
     g_swapChain->Present(1, 0);
+
+    // ⚠️ TODO: FlushCommandQueue() 호출을 통해 GPU 작업 완료를 기다려야 합니다.
+    FlushCommandQueue();
+}
+
+void FlushCommandQueue()
+{
+    // 1. Fence 값을 증가시켜 새로운 표식을 만듭니다.
+    g_fenceValue++;
+
+    // 2. Command Queue에 새로운 Fence 신호를 기록합니다.
+    g_commandQueue->Signal(g_fence.Get(), g_fenceValue);
+
+    // 3. GPU의 현재 완료 값이 CPU가 설정한 값보다 작다면 (작업 미완료)
+    if (g_fence->GetCompletedValue() < g_fenceValue)
+    {
+        // GPU 완료 이벤트를 기다립니다.
+        HANDLE eventHandle = CreateEventEx(nullptr, FALSE, FALSE, EVENT_ALL_ACCESS);
+        g_fence->SetEventOnCompletion(g_fenceValue, eventHandle);
+
+        // CPU가 대기합니다. (무한대 시간 대기)
+        WaitForSingleObject(eventHandle, INFINITE);
+        CloseHandle(eventHandle);
+    }
+}
+
+std::wstring OpenFileLoadDialog()
+{
+    // Win32 FILEOPEN 대화 상자를 위한 구조체
+    OPENFILENAMEW ofn = { 0 };
+    WCHAR szFile[260] = { 0 }; // 파일 경로를 저장할 버퍼
+
+    // OPENFILENAME 구조체 설정
+    ofn.lStructSize = sizeof(ofn);
+    ofn.hwndOwner = g_hWnd; // 메인 창 핸들 사용
+    ofn.lpstrFile = szFile;
+    ofn.nMaxFile = sizeof(szFile);
+
+    // 파일 필터 설정 (FBX 모델만 표시)
+    ofn.lpstrFilter = L"FBX Models (*.fbx)\0*.fbx\0All Files (*.*)\0*.*\0";
+    ofn.nFilterIndex = 1;
+    ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
+
+    // 파일 열기 대화 상자 호출
+    if (GetOpenFileNameW(&ofn) == TRUE)
+    {
+        // 파일 선택 성공 시 경로 반환
+        return std::wstring(ofn.lpstrFile);
+    }
+
+    // 실패 또는 취소 시 빈 문자열 반환
+    return L"";
+}
+
+// wstring을 string으로 변환하는 간단한 헬퍼 함수 (필요한 경우)
+// ⚠️ 이 함수는 환경에 따라 다르게 구현될 수 있습니다. (locale 사용 등)
+std::string WstringToString(const std::wstring& wstr)
+{
+    if (wstr.empty()) return std::string();
+    // 간단한 변환 (locale/codepage 설정에 따라 달라질 수 있음)
+    // 안전한 방법: WideCharToMultiByte Win32 API를 사용하는 것이 가장 좋습니다.
+
+    int size_needed = WideCharToMultiByte(CP_UTF8, 0, &wstr[0], (int)wstr.size(), NULL, 0, NULL, NULL);
+    std::string strTo(size_needed, 0);
+    WideCharToMultiByte(CP_UTF8, 0, &wstr[0], (int)wstr.size(), &strTo[0], size_needed, NULL, NULL);
+    return strTo;
 }

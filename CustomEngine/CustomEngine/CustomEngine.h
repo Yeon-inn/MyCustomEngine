@@ -1,5 +1,5 @@
 #pragma once
-
+#include <windows.h> // LRESULT, HWND 등 Win32 기본 타입 정의를 위해 필수
 #include "resource.h"
 
 // 루트 시그니처 추가
@@ -67,3 +67,6 @@ ComPtr<ID3D12Device> g_d3dDevice;               // D3D12 Device
 ComPtr<IDXGIFactory4> g_dxgiFactory;            // DXGI Factory
 ComPtr<ID3D12CommandQueue> g_commandQueue;      // Command Queue
 ComPtr<IDXGISwapChain3> g_swapChain;            // Swap Chain
+
+void FlushCommandQueue();
+std::wstring OpenFileLoadDialog();

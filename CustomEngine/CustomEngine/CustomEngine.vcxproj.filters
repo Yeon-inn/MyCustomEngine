@@ -19,6 +19,9 @@
     <Filter Include="imgui">
       <UniqueIdentifier>{7abf5e68-5275-40eb-b28e-021515732cf3}</UniqueIdentifier>
     </Filter>
+    <Filter Include="DirectX\assimp">
+      <UniqueIdentifier>{d43e41aa-2177-4603-be26-e577312ec0e0}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CustomEngine.h">
@@ -114,6 +117,252 @@
     <ClInclude Include="..\..\..\imgui-master\imgui-master\backends\imgui_impl_dx12.h">
       <Filter>imgui</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\aabb.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\ai_assert.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\anim.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\AssertHandler.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\Base64.hpp">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\BaseImporter.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\Bitmap.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\BlobIOSystem.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\ByteSwapper.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\camera.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\cexport.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\cfileio.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\cimport.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\ColladaMetaData.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\color4.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\commonMetaData.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\Compiler\poppack1.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\Compiler\pstdint.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\Compiler\pushpack1.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\CreateAnimMesh.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\DefaultIOStream.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\DefaultIOSystem.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\DefaultLogger.hpp">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\defs.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\Exceptional.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\Exporter.hpp">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\fast_atof.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\GenericProperty.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\GltfMaterial.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\Hash.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\Importer.hpp">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\importerdesc.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\IOStream.hpp">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\IOStreamBuffer.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\IOSystem.hpp">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\light.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\LineSplitter.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\LogAux.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\Logger.hpp">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\LogStream.hpp">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\material.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\MathFunctions.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\matrix3x3.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\matrix4x4.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\MemoryIOWrapper.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\mesh.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\metadata.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\NullLogger.hpp">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\ObjMaterial.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\ParsingUtils.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\pbrmaterial.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\port\AndroidJNI\AndroidJNIIOSystem.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\port\AndroidJNI\BundledAssetIOSystem.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\postprocess.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\Profiler.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\ProgressHandler.hpp">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\qnan.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\quaternion.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\RemoveComments.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\scene.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\SceneCombiner.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\SGSpatialSort.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\SkeletonMeshBuilder.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\SmallVector.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\SmoothingGroups.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\SpatialSort.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\StandardShapes.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\StreamReader.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\StreamWriter.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\StringComparison.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\StringUtils.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\Subdivision.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\texture.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\TinyFormatter.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\types.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\vector2.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\vector3.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\version.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\Vertex.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\XmlParser.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\XMLTools.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\ZipArchiveIOSystem.h">
+      <Filter>DirectX\assimp</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CustomEngine.cpp">
@@ -187,5 +436,31 @@
     <Midl Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\d3d12.idl">
       <Filter>DirectX</Filter>
     </Midl>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\..\assimp-master\assimp-master\include\assimp\color4.inl">
+      <Filter>DirectX\assimp</Filter>
+    </None>
+    <None Include="..\..\..\assimp-master\assimp-master\include\assimp\material.inl">
+      <Filter>DirectX\assimp</Filter>
+    </None>
+    <None Include="..\..\..\assimp-master\assimp-master\include\assimp\matrix3x3.inl">
+      <Filter>DirectX\assimp</Filter>
+    </None>
+    <None Include="..\..\..\assimp-master\assimp-master\include\assimp\matrix4x4.inl">
+      <Filter>DirectX\assimp</Filter>
+    </None>
+    <None Include="..\..\..\assimp-master\assimp-master\include\assimp\quaternion.inl">
+      <Filter>DirectX\assimp</Filter>
+    </None>
+    <None Include="..\..\..\assimp-master\assimp-master\include\assimp\SmoothingGroups.inl">
+      <Filter>DirectX\assimp</Filter>
+    </None>
+    <None Include="..\..\..\assimp-master\assimp-master\include\assimp\vector2.inl">
+      <Filter>DirectX\assimp</Filter>
+    </None>
+    <None Include="..\..\..\assimp-master\assimp-master\include\assimp\vector3.inl">
+      <Filter>DirectX\assimp</Filter>
+    </None>
   </ItemGroup>
 </Project>

@@ -1,6 +1,8 @@
 #pragma once
 #include <windows.h> // LRESULT, HWND 등 Win32 기본 타입 정의를 위해 필수
 #include "resource.h"
+#include <DirectXMath.h> // XMFLOAT4X4, XMMATRIX 등의 수학 자료형 정의
+#include <DirectXPackedVector.h> // (선택 사항)
 
 // 루트 시그니처 추가
 extern ComPtr<ID3D12RootSignature> g_rootSignature;
@@ -53,6 +55,8 @@ ComPtr<ID3D12PipelineState> g_pipelineState;
 struct Vertex
 {
     float x, y, z;
+    float nx, ny, nz;       // Normal (법선)
+    float u, v;             // UV (텍스처 좌표)
 };
 
 ComPtr<ID3D12Resource> g_vertexBuffer;
@@ -70,3 +74,23 @@ ComPtr<IDXGISwapChain3> g_swapChain;            // Swap Chain
 
 void FlushCommandQueue();
 std::wstring OpenFileLoadDialog();
+
+ComPtr<ID3D12Resource> g_indexBuffer;     // 인덱스 버퍼 리소스
+D3D12_INDEX_BUFFER_VIEW g_indexBufferView; // 인덱스 버퍼 뷰
+UINT g_indexCount;                        // 드로잉에 필요한 인덱스 총 개수
+
+// 파일 대화 상자 함수 (WCHAR*를 반환하도록 수정했음)
+WCHAR* OpenFileDialog();
+
+// 모델 로딩 함수 (WCHAR* 경로를 받도록 수정했음)
+bool LoadModel(const WCHAR* filePath);
+
+// 전역 변수 정의 (ComPtr<ID3D12Resource>는 C++ 파일 상단 또는 헤더에 정의)
+ComPtr<ID3D12Resource> g_constantBuffer;
+UINT8* g_constantBufferPtr;
+
+struct ObjectConstants {
+    DirectX::XMFLOAT4X4 WorldViewProj;
+    // 실제 사용 시, 256바이트 정렬을 위해 패딩이 필요하지만, 여기서는 단순화합니다.
+    // float4x4는 64바이트이므로, 256바이트 정렬을 위해 192바이트 패딩이 필요합니다.
+};

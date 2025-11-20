@@ -1,5 +1,7 @@
 ﻿#include <windows.h> // LRESULT, HWND 등 Win32 기본 타입 정의를 위해 필수
+#include <commdlg.h> // 파일 대화 상자 사용을 위한 헤더
 #include <string>
+#include <iostream>
 
 // DX12 관련 헤더
 #include <dxgi1_6.h>        // DXGI 팩토리 및 어댑터 열거
@@ -22,9 +24,26 @@ using Microsoft::WRL::ComPtr;
 #include "imgui_impl_win32.h"
 #include "imgui_impl_dx12.h"
 
+#include <assimp/Importer.hpp> // Assimp Importer 클래스
+#include <assimp/scene.h>      // aiScene 구조체
+#include <assimp/postprocess.h> // 파싱 후 처리 플래그
+
+#include <DirectXMath.h> // XMFLOAT4X4, XMMATRIX 등의 수학 자료형 정의
+#include <DirectXPackedVector.h> // (선택 사항)
+using namespace DirectX;
+
 
 IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 ComPtr<ID3D12DescriptorHeap> g_imguiSrvHeap; // ImGui 폰트 텍스처용 Heap   
+
+std::string WstringToString(const std::wstring& wstr)
+{
+    if (wstr.empty()) return std::string();
+    int size_needed = WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), (int)wstr.length(), NULL, 0, NULL, NULL);
+    std::string strTo(size_needed, 0);
+    WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), (int)wstr.length(), &strTo[0], size_needed, NULL, NULL);
+    return strTo;
+}
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
@@ -289,6 +308,38 @@ bool InitializeDX12(HINSTANCE hInstance)
     hr = g_d3dDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&g_fence)); // 🚨 g_fence 생성
     if (FAILED(hr)) return false;
 
+    // 1. Constant Buffer 크기 정의 (256바이트 정렬)
+    // D3D12는 상수 버퍼를 256바이트 단위로 정렬해야 합니다.
+    const UINT cbSize = sizeof(ObjectConstants);
+    const UINT alignedCbSize = (cbSize + 255) & ~255;
+
+    // 2. Upload Heap에 Constant Buffer 리소스 생성
+    const CD3DX12_HEAP_PROPERTIES cbHeapProps(D3D12_HEAP_TYPE_UPLOAD);
+    const CD3DX12_RESOURCE_DESC cbResourceDesc = CD3DX12_RESOURCE_DESC::Buffer(alignedCbSize);
+
+    hr = g_d3dDevice->CreateCommittedResource(
+        &cbHeapProps,
+        D3D12_HEAP_FLAG_NONE,
+        &cbResourceDesc,
+        D3D12_RESOURCE_STATE_GENERIC_READ,
+        nullptr,
+        IID_PPV_ARGS(&g_constantBuffer));
+    if (FAILED(hr)) return false;
+
+    // 3. Constant Buffer 초기화 및 데이터 복사 (Identity 행렬)
+    ObjectConstants objectConstants;
+
+    // Identity 행렬 생성 및 저장
+    DirectX::XMStoreFloat4x4(&objectConstants.WorldViewProj, DirectX::XMMatrixIdentity());
+
+    // 4. GPU 메모리에 매핑 및 데이터 복사
+    // g_constantBufferPtr은 CPU가 GPU 메모리를 직접 가리키는 포인터가 됩니다.
+    hr = g_constantBuffer->Map(0, nullptr, reinterpret_cast<void**>(&g_constantBufferPtr));
+    if (FAILED(hr)) return false;
+
+    // 초기 Identity 행렬 데이터 복사
+    memcpy(g_constantBufferPtr, &objectConstants, cbSize);
+
     UINT rtvDescriptorSize = g_d3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
     CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(g_rtvHeap->GetCPUDescriptorHandleForHeapStart());
 
@@ -411,14 +462,19 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 bool CreateRootSignature()
 {
+    CD3DX12_ROOT_PARAMETER slotRootParameter[1];
+    slotRootParameter[0].InitAsConstantBufferView(0); // b0 레지스터에 바인딩
+
     // 현재는 아무런 자원(Constant Buffer, Texture 등)을 사용하지 않으므로, 
     // 빈(Empty) 루트 시그니처를 생성합니다.
 
     D3D12_ROOT_SIGNATURE_DESC rootSignatureDesc = {};
-    rootSignatureDesc.NumParameters = 0;              // 자원 파라미터 0개
-    rootSignatureDesc.pParameters = nullptr;
+    rootSignatureDesc.NumParameters = 1;              // 자원 파라미터 0개
+    rootSignatureDesc.pParameters = slotRootParameter;
     rootSignatureDesc.NumStaticSamplers = 0;          // 정적 샘플러 0개
     rootSignatureDesc.pStaticSamplers = nullptr;
+
+    rootSignatureDesc.pParameters = slotRootParameter;
 
     // 이 플래그는 버텍스 셰이더만 사용하는 가장 간단한 경우입니다.
     rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
@@ -513,9 +569,11 @@ bool CreatePipelineStateObject()
     // 정점 데이터 구조를 정의합니다. (VSInput struct와 일치해야 합니다.)
     D3D12_INPUT_ELEMENT_DESC inputElementDescs[] =
     {
-        {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
-        // 이 예제에서는 위치(float3)만 사용하며, 메모리의 0 오프셋부터 시작함을 의미합니다.
+        {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+        {"NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+        {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0} // 🚨 R32G32_FLOAT 확인
     };
+
 
     // ------------------------------------
     // 3. PSO (Pipeline State Object) 구조체 작성
@@ -615,6 +673,7 @@ void Render()
     {
         // ⚠️ TODO: 파일 대화 상자 함수 호출
         std::wstring filePath = OpenFileLoadDialog();
+        WCHAR* filePathRaw = OpenFileDialog();
 
         if (!filePath.empty())
         {
@@ -622,6 +681,16 @@ void Render()
             OutputDebugStringW(L"Selected file: ");
             OutputDebugStringW(filePath.c_str());
             OutputDebugStringW(L"\n");
+
+            // 2. LoadModel 함수 호출 (LoadModel은 WCHAR*를 인자로 받아야 합니다.)
+            if (LoadModel(filePathRaw))
+            {
+                // 성공 시 GPU 동기화
+                FlushCommandQueue();
+            }
+
+            // 🚨 3. 중요: _wcsdup가 할당한 힙 메모리를 해제합니다.
+            free(filePathRaw);
 
             // LoadModel(filePath); // <- 최종적으로 여기에 FBX 로더가 연결됩니다.
         }
@@ -650,6 +719,35 @@ void Render()
     g_commandList->RSSetViewports(1, &viewport);
     g_commandList->RSSetScissorRects(1, &scissorRect);
     g_commandList->SetGraphicsRootSignature(g_rootSignature.Get());
+    g_commandList->SetGraphicsRootConstantBufferView(0, g_constantBuffer->GetGPUVirtualAddress());
+
+    // 1. World 행렬 (예: Identity)
+    XMMATRIX world = XMMatrixIdentity();
+
+    // 2. View 행렬 (카메라 위치 설정)
+    XMVECTOR eyePos = XMVectorSet(0.0f, 0.0f, -5.0f, 1.0f); // 카메라를 Z=-5에 배치
+    XMVECTOR lookAt = XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
+    XMVECTOR up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+    XMMATRIX view = XMMatrixLookAtLH(eyePos, lookAt, up);
+
+    // 3. Projection 행렬 (원근 투영)
+    GetClientRect(g_hWnd, &clientRect);
+    float aspectRatio = (float)width / height;
+    // 60도 FOV, 종횡비, 0.1f ~ 1000.0f 깊이 범위
+    XMMATRIX proj = XMMatrixPerspectiveFovLH(XM_PIDIV4, aspectRatio, 0.1f, 1000.0f);
+
+    // 4. WVP 행렬 계산 및 Constant Buffer에 복사
+    XMMATRIX wvp = world * view * proj;
+
+    // Transpose (셰이더에서 mul(vec, mat) 대신 mul(mat, vec)를 사용할 경우)
+    XMMATRIX finalWVP = XMMatrixTranspose(wvp);
+
+    // Constant Buffer 포인터에 데이터 복사
+    ObjectConstants objCB;
+    XMStoreFloat4x4(&objCB.WorldViewProj, finalWVP);
+
+    // g_constantBufferPtr은 InitializeDX12에서 Map된 CPU 포인터입니다.
+    memcpy(g_constantBufferPtr, &objCB, sizeof(ObjectConstants));
 
     // ----------------------------------------------------
     // 3. Back Buffer 설정 및 3D 씬 그리기 (Triangle)
@@ -676,8 +774,13 @@ void Render()
     g_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     g_commandList->IASetVertexBuffers(0, 1, &g_vertexBufferView);
     g_commandList->SetPipelineState(g_pipelineState.Get()); // PSO 설정
-    g_commandList->DrawInstanced(3, 1, 0, 0);
 
+    // 🚨 1. 인덱스 버퍼 바인딩 추가 (FBX 모델은 인덱스를 사용)
+    g_commandList->IASetIndexBuffer(&g_indexBufferView);
+
+    // 🚨 2. Draw Call 변경: DrawInstanced 대신 DrawIndexedInstanced 사용
+    // g_indexCount: LoadModel 함수에서 계산된 전체 인덱스 개수
+    g_commandList->DrawIndexedInstanced(g_indexCount, 1, 0, 0, 0);
 
     // ----------------------------------------------------
     // 4. ImGui Draw (UI를 3D 씬 위에 덮어쓰기)
@@ -763,16 +866,196 @@ std::wstring OpenFileLoadDialog()
     return L"";
 }
 
-// wstring을 string으로 변환하는 간단한 헬퍼 함수 (필요한 경우)
-// ⚠️ 이 함수는 환경에 따라 다르게 구현될 수 있습니다. (locale 사용 등)
-std::string WstringToString(const std::wstring& wstr)
-{
-    if (wstr.empty()) return std::string();
-    // 간단한 변환 (locale/codepage 설정에 따라 달라질 수 있음)
-    // 안전한 방법: WideCharToMultiByte Win32 API를 사용하는 것이 가장 좋습니다.
+void LoadModelFromPath(const WCHAR* path) {
+    std::wstring wpath(path);
+    std::string path_ansi = WstringToString(wpath);
 
-    int size_needed = WideCharToMultiByte(CP_UTF8, 0, &wstr[0], (int)wstr.size(), NULL, 0, NULL, NULL);
-    std::string strTo(size_needed, 0);
-    WideCharToMultiByte(CP_UTF8, 0, &wstr[0], (int)wstr.size(), &strTo[0], size_needed, NULL, NULL);
-    return strTo;
+    Assimp::Importer importer;
+
+    // Assimp의 핵심 함수: 파일 경로를 전달하고, 후처리 플래그를 지정
+    const aiScene* scene = importer.ReadFile(
+        path_ansi.c_str(), // 변환된 std::string의 char* 포인터를 전달
+        aiProcess_Triangulate |
+        aiProcess_GenSmoothNormals |
+        aiProcess_FlipUVs |
+        aiProcess_CalcTangentSpace
+    );
+
+    // 로드 실패 처리
+    if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
+        // ImGui 창이나 콘솔에 오류 메시지 출력
+        std::cerr << "Assimp 로드 오류: " << importer.GetErrorString() << std::endl;
+        return;
+    }
+
+    // --- 로드 성공: 여기서부터 aiScene 데이터 활용 ---
+
+    std::cout << "모델 로드 성공: " << path << std::endl;
+    std::cout << "총 메쉬 수: " << scene->mNumMeshes << std::endl;
+
+    // TODO:
+    // 1. scene->mNumMeshes 루프를 돌면서 메쉬 데이터(정점, 인덱스)를 추출
+    // 2. scene->mNumMaterials 루프를 돌면서 재질 및 텍스처를 로드
+    // 3. 추출된 데이터를 DirectX 12/Vulkan 등의 렌더링 API를 사용해 GPU 버퍼에 업로드
+}
+
+// 반환 타입: char* 대신 WCHAR* 사용
+WCHAR* OpenFileDialog() {
+    OPENFILENAME ofn;        // 구조체 초기화
+    WCHAR szFile[260] = { 0 }; // 파일 경로를 저장할 버퍼
+
+    ZeroMemory(&ofn, sizeof(ofn));
+    ofn.lStructSize = sizeof(ofn);
+    ofn.hwndOwner = g_hWnd; // 전역 핸들 g_hWnd 사용 (NULL 대신)
+
+    // 필터: FBX, OBJ, GLTF 파일만 보이게 설정
+    ofn.lpstrFilter = L"3D Models (*.fbx;*.obj;*.gltf)\0*.fbx;*.obj;*.gltf\0All Files (*.*)\0*.*\0";
+
+    ofn.lpstrFile = szFile;
+    ofn.nMaxFile = _countof(szFile); // sizeof(szFile) 대신 _countof(szFile) 사용 권장
+    ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
+
+    // 파일 열기 대화 상자 호출
+    if (GetOpenFileName(&ofn) == TRUE) {
+        // 경로가 성공적으로 선택되면 버퍼의 내용을 복사하여 반환
+        return _wcsdup(ofn.lpstrFile);
+    }
+
+    return nullptr; // 취소되거나 실패한 경우
+}
+
+void RenderGUI() {
+    ImGui::Begin("모델 로드");
+
+    // 버튼을 누르면 파일 탐색기를 띄웁니다.
+    if (ImGui::Button("FBX/OBJ 파일 선택")) {
+        WCHAR* filePath = OpenFileDialog();
+
+        // 경로가 성공적으로 반환되었을 경우
+        if (filePath != nullptr) {
+            LoadModelFromPath(filePath);
+            free(filePath); // Win32 API 메모리 해제
+        }
+    }
+
+    ImGui::End();
+}
+
+// Assimp 헤더와 문자열 헬퍼가 이 파일에 정의되어 있어야 합니다.
+
+bool LoadModel(const WCHAR* filePath)
+{
+    g_vertexBuffer.Reset();
+    g_indexBuffer.Reset();
+
+    // 1. WCHAR* (Wide Character) 경로를 std::string (ANSI/Multibyte)으로 변환
+    std::wstring wpath(filePath);
+    std::string path_ansi = WstringToString(wpath);
+
+    Assimp::Importer importer;
+    // FBX 파일 로딩 및 후처리 (삼각형화, 왼손 좌표계, 법선, 탄젠트 계산)
+    const aiScene* scene = importer.ReadFile(
+        path_ansi.c_str(),
+        aiProcess_Triangulate | aiProcess_ConvertToLeftHanded | aiProcess_GenNormals | aiProcess_CalcTangentSpace);
+
+    if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
+    {
+        // OutputDebugStringA("ERROR: Assimp failed to load model.");
+        return false;
+    }
+
+    // ----------------------------------------------------
+    // 2. 데이터 추출 (첫 번째 메시만 사용한다고 가정)
+    // ----------------------------------------------------
+    aiMesh* mesh = scene->mMeshes[0];
+
+    std::vector<Vertex> vertices;
+    std::vector<UINT> indices;
+
+    // 정점 데이터 추출
+    for (UINT i = 0; i < mesh->mNumVertices; i++)
+    {
+        Vertex v = {};
+        v.x = mesh->mVertices[i].x;
+        v.y = mesh->mVertices[i].y;
+        v.z = mesh->mVertices[i].z;
+
+        // 법선 데이터 (FBX에는 필수적)
+        if (mesh->mNormals) {
+            v.nx = mesh->mNormals[i].x;
+            v.ny = mesh->mNormals[i].y;
+            v.nz = mesh->mNormals[i].z;
+        }
+
+        // 텍스처 좌표 (UV)
+        if (mesh->mTextureCoords[0]) {
+            v.u = mesh->mTextureCoords[0][i].x;
+            v.v = mesh->mTextureCoords[0][i].y;
+        }
+        vertices.push_back(v);
+    }
+
+    // 인덱스 데이터 추출
+    for (UINT i = 0; i < mesh->mNumFaces; i++)
+    {
+        aiFace face = mesh->mFaces[i];
+        for (UINT j = 0; j < face.mNumIndices; j++)
+        {
+            indices.push_back(face.mIndices[j]);
+        }
+    }
+
+    // ----------------------------------------------------
+    // 3. GPU 업로드: Vertex Buffer 및 Index Buffer 생성
+    // ----------------------------------------------------
+
+    const CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_UPLOAD);
+    CD3DX12_RANGE readRange(0, 0);
+
+    // ====================================================
+    // A. Vertex Buffer 리소스 생성 및 업로드
+    // ====================================================
+    const UINT vertexBufferSize = vertices.size() * sizeof(Vertex);
+    const CD3DX12_RESOURCE_DESC vertexResourceDesc = CD3DX12_RESOURCE_DESC::Buffer(vertexBufferSize);
+
+    // 리소스 생성
+    if (FAILED(g_d3dDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &vertexResourceDesc,
+        D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&g_vertexBuffer)))) return false;
+
+    // 데이터 복사
+    UINT8* pVertexDataBegin;
+    g_vertexBuffer->Map(0, &readRange, reinterpret_cast<void**>(&pVertexDataBegin));
+    memcpy(pVertexDataBegin, vertices.data(), vertexBufferSize);
+    g_vertexBuffer->Unmap(0, nullptr);
+
+    // Vertex Buffer View 설정
+    g_vertexBufferView.BufferLocation = g_vertexBuffer->GetGPUVirtualAddress();
+    g_vertexBufferView.StrideInBytes = sizeof(Vertex);
+    g_vertexBufferView.SizeInBytes = vertexBufferSize;
+
+    // ====================================================
+    // B. Index Buffer 리소스 생성 및 업로드
+    // ====================================================
+    const UINT indexBufferSize = indices.size() * sizeof(UINT);
+    const CD3DX12_RESOURCE_DESC indexResourceDesc = CD3DX12_RESOURCE_DESC::Buffer(indexBufferSize);
+    g_indexCount = indices.size(); // 인덱스 개수 저장
+
+    // 리소스 생성
+    HRESULT hr = g_d3dDevice->CreateCommittedResource(
+        &heapProps, D3D12_HEAP_FLAG_NONE, &indexResourceDesc,
+        D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&g_indexBuffer));
+    if (FAILED(hr)) return false;
+
+    // 데이터 복사
+    UINT8* pIndexDataBegin;
+    g_indexBuffer->Map(0, &readRange, reinterpret_cast<void**>(&pIndexDataBegin));
+    memcpy(pIndexDataBegin, indices.data(), indexBufferSize);
+    g_indexBuffer->Unmap(0, nullptr);
+
+    // Index Buffer View 설정
+    g_indexBufferView.BufferLocation = g_indexBuffer->GetGPUVirtualAddress();
+    g_indexBufferView.SizeInBytes = indexBufferSize;
+    g_indexBufferView.Format = DXGI_FORMAT_R32_UINT;
+
+    return true;
 }

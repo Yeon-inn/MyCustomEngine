@@ -89,8 +89,26 @@ bool LoadModel(const WCHAR* filePath);
 ComPtr<ID3D12Resource> g_constantBuffer;
 UINT8* g_constantBufferPtr;
 
+
 struct ObjectConstants {
-    DirectX::XMFLOAT4X4 WorldViewProj;
-    // 실제 사용 시, 256바이트 정렬을 위해 패딩이 필요하지만, 여기서는 단순화합니다.
-    // float4x4는 64바이트이므로, 256바이트 정렬을 위해 192바이트 패딩이 필요합니다.
+    DirectX::XMFLOAT4X4 WorldViewProj; // 64 bytes (Offset 0)
+    DirectX::XMFLOAT4 MaterialDiffuse; // 16 bytes (Offset 64)
+    DirectX::XMFLOAT4X4 World;         // 64 bytes (Offset 80 - NOT aligned to 16-byte boundary) 
+};
+
+struct LightConstants {
+    DirectX::XMFLOAT3 LightDirection; // 광원의 방향 (월드 공간)
+    float Pad;
+    DirectX::XMFLOAT4 LightColor;     // 광원의 색상 (RGBA)
+};
+
+ComPtr<ID3D12Resource> g_lightConstantBuffer;
+UINT8* g_lightConstantBufferPtr;
+// ...
+
+// [추가] Light 데이터 초기값
+LightConstants g_mainLight = {
+    { -0.5f, -1.0f, -0.5f }, // LightDirection (대각선 위에서 비춤)
+    0.0f,                    // Pad
+    { 1.0f, 1.0f, 1.0f, 1.0f } // LightColor (흰색)
 };

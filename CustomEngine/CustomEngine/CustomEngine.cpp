@@ -36,6 +36,8 @@ using namespace DirectX;
 IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 ComPtr<ID3D12DescriptorHeap> g_imguiSrvHeap; // ImGui 폰트 텍스처용 Heap   
 
+XMFLOAT4 g_modelDiffuseColor = { 1.0f, 1.0f, 1.0f, 1.0f }; // 기본 흰색
+
 std::string WstringToString(const std::wstring& wstr)
 {
     if (wstr.empty()) return std::string();
@@ -340,6 +342,36 @@ bool InitializeDX12(HINSTANCE hInstance)
     // 초기 Identity 행렬 데이터 복사
     memcpy(g_constantBufferPtr, &objectConstants, cbSize);
 
+    // 1. Light Constant Buffer 크기 정의 (256바이트 정렬)
+    const UINT lightCbSize = sizeof(LightConstants);
+    const UINT alignedLightCbSize = (lightCbSize + 255) & ~255;
+
+    // 2. Upload Heap에 Light Constant Buffer 리소스 생성
+    // 기존의 cbHeapProps(D3D12_HEAP_TYPE_UPLOAD)와 동일한 속성을 사용합니다.
+    const CD3DX12_RESOURCE_DESC lightResourceDesc = CD3DX12_RESOURCE_DESC::Buffer(alignedLightCbSize);
+
+    hr = g_d3dDevice->CreateCommittedResource(
+        &cbHeapProps,
+        D3D12_HEAP_FLAG_NONE,
+        &lightResourceDesc,
+        D3D12_RESOURCE_STATE_GENERIC_READ,
+        nullptr,
+        IID_PPV_ARGS(&g_lightConstantBuffer));
+    if (FAILED(hr)) return false;
+
+    // 3. Light Constant Buffer 초기화 및 데이터 복사
+    LightConstants initialLight = {
+        { -0.5f, -1.0f, -0.5f }, // LightDirection (초기값 설정)
+        0.0f,
+        { 1.0f, 1.0f, 1.0f, 1.0f } // LightColor (흰색)
+    };
+
+    // 4. GPU 메모리에 매핑 및 초기 데이터 복사
+    hr = g_lightConstantBuffer->Map(0, nullptr, reinterpret_cast<void**>(&g_lightConstantBufferPtr));
+    if (FAILED(hr)) return false;
+
+    memcpy(g_lightConstantBufferPtr, &initialLight, lightCbSize);
+
     UINT rtvDescriptorSize = g_d3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
     CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(g_rtvHeap->GetCPUDescriptorHandleForHeapStart());
 
@@ -462,14 +494,17 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 bool CreateRootSignature()
 {
-    CD3DX12_ROOT_PARAMETER slotRootParameter[1];
-    slotRootParameter[0].InitAsConstantBufferView(0); // b0 레지스터에 바인딩
+    // [수정] Constant Buffer 2개 바인딩 (b0: WVP/Material, b1: Light)
+    // CD3DX12_ROOT_PARAMETER slotRootParameter[1]; -> [2]로 변경
+    CD3DX12_ROOT_PARAMETER slotRootParameter[2];
+    slotRootParameter[0].InitAsConstantBufferView(0); // b0 레지스터 (WVP/Material)
+    slotRootParameter[1].InitAsConstantBufferView(1); // [추가] b1 레지스터 (Light)
 
     // 현재는 아무런 자원(Constant Buffer, Texture 등)을 사용하지 않으므로, 
     // 빈(Empty) 루트 시그니처를 생성합니다.
 
     D3D12_ROOT_SIGNATURE_DESC rootSignatureDesc = {};
-    rootSignatureDesc.NumParameters = 1;              // 자원 파라미터 0개
+    rootSignatureDesc.NumParameters = 2;              // 자원 파라미터 0개
     rootSignatureDesc.pParameters = slotRootParameter;
     rootSignatureDesc.NumStaticSamplers = 0;          // 정적 샘플러 0개
     rootSignatureDesc.pStaticSamplers = nullptr;
@@ -480,8 +515,7 @@ bool CreateRootSignature()
     rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
         D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
         D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
-        D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS |
-        D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS;
+        D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
 
     ComPtr<ID3DBlob> signature;
     ComPtr<ID3DBlob> error;
@@ -721,10 +755,17 @@ void Render()
     g_commandList->SetGraphicsRootSignature(g_rootSignature.Get());
     g_commandList->SetGraphicsRootConstantBufferView(0, g_constantBuffer->GetGPUVirtualAddress());
 
-    // 1. World 행렬 (예: Identity)
-    XMMATRIX world = XMMatrixIdentity();
+    g_commandList->SetGraphicsRootConstantBufferView(1, g_lightConstantBuffer->GetGPUVirtualAddress());
 
+    // [수정할 부분] 모델이 너무 크거나 작을 수 있으므로 적절한 스케일링을 적용합니다.
+    float modelScale = 0.1f; // 'Beretta M9' 모델은 크기가 클 수 있으므로 0.1f부터 시작합니다.
+    XMMATRIX scaleMatrix = XMMatrixScaling(modelScale, modelScale, modelScale);
+    // ------------------------------------------------------------------
+
+    XMMATRIX rotationMatrix = XMMatrixRotationX(XMConvertToRadians(90.0f));
+    XMMATRIX world = scaleMatrix * rotationMatrix;
     // 2. View 행렬 (카메라 위치 설정)
+    // [확인] 현재 카메라 위치는 Z=-5.0f 입니다. 모델이 잘 보이지 않으면 이 값을 조정하세요.
     XMVECTOR eyePos = XMVectorSet(0.0f, 0.0f, -5.0f, 1.0f); // 카메라를 Z=-5에 배치
     XMVECTOR lookAt = XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
     XMVECTOR up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
@@ -745,6 +786,14 @@ void Render()
     // Constant Buffer 포인터에 데이터 복사
     ObjectConstants objCB;
     XMStoreFloat4x4(&objCB.WorldViewProj, finalWVP);
+
+    // [추가할 부분] World 행렬 전송
+    // =========================================================================
+    XMStoreFloat4x4(&objCB.World, XMMatrixTranspose(world)); // 월드 행렬 전송 (전치)
+
+    // [추가된 부분: 재질 색상 데이터 복사]
+    // ObjectConstants에 추가된 MaterialDiffuse 멤버에 전역 변수 g_modelDiffuseColor 값을 복사합니다.
+    objCB.MaterialDiffuse = g_modelDiffuseColor;
 
     // g_constantBufferPtr은 InitializeDX12에서 Map된 CPU 포인터입니다.
     memcpy(g_constantBufferPtr, &objCB, sizeof(ObjectConstants));
@@ -1056,6 +1105,29 @@ bool LoadModel(const WCHAR* filePath)
     g_indexBufferView.BufferLocation = g_indexBuffer->GetGPUVirtualAddress();
     g_indexBufferView.SizeInBytes = indexBufferSize;
     g_indexBufferView.Format = DXGI_FORMAT_R32_UINT;
+
+    // [추가된 부분: 재질 색상 추출]
+    // ----------------------------------------------------
+    if (scene->HasMaterials())
+    {
+        // 첫 번째 메쉬가 사용하는 재질을 가져옵니다. (통합 메쉬지만 첫 메쉬의 재질을 임시로 사용)
+        aiMaterial* material = scene->mMaterials[scene->mMeshes[0]->mMaterialIndex];
+        aiColor3D color(0.0f, 0.0f, 0.0f);
+
+        // 확산 색상 (Diffuse Color) 추출
+        if (material->Get(AI_MATKEY_COLOR_DIFFUSE, color) == AI_SUCCESS)
+        {
+            g_modelDiffuseColor.x = color.r;
+            g_modelDiffuseColor.y = color.g;
+            g_modelDiffuseColor.z = color.b;
+            g_modelDiffuseColor.w = 1.0f;
+        }
+        else
+        {
+            // 색상 정보가 없으면 기본 흰색 사용
+            g_modelDiffuseColor = { 1.0f, 1.0f, 1.0f, 1.0f };
+        }
+    }
 
     return true;
 }

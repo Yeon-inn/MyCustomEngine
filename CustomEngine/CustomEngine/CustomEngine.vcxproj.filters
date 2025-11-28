@@ -22,6 +22,9 @@
     <Filter Include="DirectX\assimp">
       <UniqueIdentifier>{d43e41aa-2177-4603-be26-e577312ec0e0}</UniqueIdentifier>
     </Filter>
+    <Filter Include="imguizmo">
+      <UniqueIdentifier>{fea2bf28-0fd8-4f81-8bac-8ab30e647709}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CustomEngine.h">
@@ -363,6 +366,9 @@
     <ClInclude Include="..\..\..\assimp-master\assimp-master\include\assimp\ZipArchiveIOSystem.h">
       <Filter>DirectX\assimp</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\ImGuizmo-master\ImGuizmo-master\ImGuizmo.h">
+      <Filter>imguizmo</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CustomEngine.cpp">
@@ -386,6 +392,9 @@
     <ClCompile Include="..\..\..\imgui-master\imgui-master\backends\imgui_impl_win32.cpp">
       <Filter>imgui</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\ImGuizmo-master\ImGuizmo-master\ImGuizmo.cpp">
+      <Filter>imguizmo</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="CustomEngine.rc">
@@ -404,38 +413,6 @@
     <FxCompile Include="Shader.hlsl">
       <Filter>소스 파일</Filter>
     </FxCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <Midl Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\d3d12compatibility.idl">
-      <Filter>DirectX</Filter>
-    </Midl>
-    <Midl Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\d3d12compiler.idl">
-      <Filter>DirectX</Filter>
-    </Midl>
-    <Midl Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\D3D12MarkerApiEnums.idl">
-      <Filter>DirectX</Filter>
-    </Midl>
-    <Midl Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\d3d12sdklayers.idl">
-      <Filter>DirectX</Filter>
-    </Midl>
-    <Midl Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\d3d12video.idl">
-      <Filter>DirectX</Filter>
-    </Midl>
-    <Midl Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\d3dcommon.idl">
-      <Filter>DirectX</Filter>
-    </Midl>
-    <Midl Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\d3dshadercacheregistration.idl">
-      <Filter>DirectX</Filter>
-    </Midl>
-    <Midl Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\dxgicommon.idl">
-      <Filter>DirectX</Filter>
-    </Midl>
-    <Midl Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\dxgiformat.idl">
-      <Filter>DirectX</Filter>
-    </Midl>
-    <Midl Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\d3d12.idl">
-      <Filter>DirectX</Filter>
-    </Midl>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\assimp-master\assimp-master\include\assimp\color4.inl">
@@ -462,5 +439,37 @@
     <None Include="..\..\..\assimp-master\assimp-master\include\assimp\vector3.inl">
       <Filter>DirectX\assimp</Filter>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\d3d12.idl">
+      <Filter>DirectX</Filter>
+    </Text>
+    <Text Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\d3d12compiler.idl">
+      <Filter>DirectX</Filter>
+    </Text>
+    <Text Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\D3D12MarkerApiEnums.idl">
+      <Filter>DirectX</Filter>
+    </Text>
+    <Text Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\d3d12sdklayers.idl">
+      <Filter>DirectX</Filter>
+    </Text>
+    <Text Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\d3d12video.idl">
+      <Filter>DirectX</Filter>
+    </Text>
+    <Text Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\d3dcommon.idl">
+      <Filter>DirectX</Filter>
+    </Text>
+    <Text Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\d3dshadercacheregistration.idl">
+      <Filter>DirectX</Filter>
+    </Text>
+    <Text Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\dxgicommon.idl">
+      <Filter>DirectX</Filter>
+    </Text>
+    <Text Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\dxgiformat.idl">
+      <Filter>DirectX</Filter>
+    </Text>
+    <Text Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\d3d12compatibility.idl">
+      <Filter>DirectX</Filter>
+    </Text>
   </ItemGroup>
 </Project>

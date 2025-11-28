@@ -1,2 +1,9 @@
-﻿  compilation object save succeeded; see K:\download\CustomEngine\CustomEngine\x64\Debug\Shader.cso
+﻿  CustomEngine.cpp
+K:\download\CustomEngine\CustomEngine\CustomEngine\CustomEngine.cpp(1176,51): warning C4267: '초기화 중': 'size_t'에서 'UINT'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+K:\download\CustomEngine\CustomEngine\CustomEngine\CustomEngine.cpp(1176,33): warning C4267: '초기화 중': 'size_t'에서 'const UINT'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+K:\download\CustomEngine\CustomEngine\CustomEngine\CustomEngine.cpp(1197,49): warning C4267: '초기화 중': 'size_t'에서 'UINT'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+K:\download\CustomEngine\CustomEngine\CustomEngine\CustomEngine.cpp(1197,32): warning C4267: '초기화 중': 'size_t'에서 'const UINT'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+K:\download\CustomEngine\CustomEngine\CustomEngine\CustomEngine.cpp(1199,32): warning C4267: '=': 'size_t'에서 'UINT'(으)로 변환하면서 데이터가 손실될 수 있습니다.
   CustomEngine.vcxproj -> K:\download\CustomEngine\CustomEngine\x64\Debug\CustomEngine.exe
+  'pwsh.exe'은(는) 내부 또는 외부 명령, 실행할 수 있는 프로그램, 또는
+  배치 파일이 아닙니다.

@@ -30,6 +30,8 @@ using Microsoft::WRL::ComPtr;
 
 #include <DirectXMath.h> // XMFLOAT4X4, XMMATRIX 등의 수학 자료형 정의
 #include <DirectXPackedVector.h> // (선택 사항)
+
+#include <ImGuizmo.h>
 using namespace DirectX;
 
 
@@ -37,6 +39,10 @@ IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARA
 ComPtr<ID3D12DescriptorHeap> g_imguiSrvHeap; // ImGui 폰트 텍스처용 Heap   
 
 XMFLOAT4 g_modelDiffuseColor = { 1.0f, 1.0f, 1.0f, 1.0f }; // 기본 흰색
+
+// 전역 변수 추가 (헤더 또는 cpp 상단에)
+static ImGuizmo::OPERATION g_currentOperation = ImGuizmo::TRANSLATE;
+static ImGuizmo::MODE g_currentMode = ImGuizmo::WORLD;
 
 std::string WstringToString(const std::wstring& wstr)
 {
@@ -61,6 +67,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
     LoadStringW(hInstance, IDC_CUSTOMENGINE, szWindowClass, MAX_LOADSTRING);
     MyRegisterClass(hInstance);
+
+    // LoadAccelerators 호출 수정: 리소스 ID 대신 NULL로 대체 (템플릿 의존성 제거)
 
     // 애플리케이션 초기화를 수행합니다:
     if (!InitInstance (hInstance, nCmdShow))
@@ -270,6 +278,32 @@ bool InitializeDX12(HINSTANCE hInstance)
     hr = g_d3dDevice->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&g_rtvHeap));
     if (FAILED(hr)) return false;
 
+    // 8. Constant Buffer 생성 및 매핑
+// ------------------------------------
+    const UINT objectCbSize = sizeof(ObjectConstants);
+    const UINT alignedObjectCbSize = (objectCbSize + 255) & ~255;
+
+    // (A) Heap Properties: 임시 객체 대신 로컬 변수를 생성합니다.
+    const CD3DX12_HEAP_PROPERTIES cbHeapProps(D3D12_HEAP_TYPE_UPLOAD);
+
+    // (B) Resource Description: 임시 객체 대신 로컬 변수를 생성합니다.
+    const CD3DX12_RESOURCE_DESC cbResourceDesc = CD3DX12_RESOURCE_DESC::Buffer(alignedObjectCbSize);
+
+    hr = g_d3dDevice->CreateCommittedResource(
+        &cbHeapProps,   // 🚨 이제 로컬 변수(L-value)의 주소를 전달
+        D3D12_HEAP_FLAG_NONE,
+        &cbResourceDesc, // 🚨 이제 로컬 변수(L-value)의 주소를 전달
+        D3D12_RESOURCE_STATE_GENERIC_READ,
+        nullptr,
+        IID_PPV_ARGS(&g_constantBuffer));
+    if (FAILED(hr)) return false;
+
+    // CPU에서 접근 가능하도록 Constant Buffer 메모리를 매핑합니다.
+    // g_cbData가 이 메모리를 가리킵니다.
+    UINT8* cbv_gpu_address;
+    g_constantBuffer->Map(0, nullptr, reinterpret_cast<void**>(&cbv_gpu_address));
+    g_constantBufferPtr = reinterpret_cast<ObjectConstants*>(cbv_gpu_address);
+
 
     // 4-4. RTV 생성 및 핸들 저장 (다음 단계에서 자세히 다룰 예정)
     // RTV (Render Target View)는 렌더링할 메모리(Swap Chain의 버퍼)를 가리키는 뷰입니다.
@@ -316,8 +350,6 @@ bool InitializeDX12(HINSTANCE hInstance)
     const UINT alignedCbSize = (cbSize + 255) & ~255;
 
     // 2. Upload Heap에 Constant Buffer 리소스 생성
-    const CD3DX12_HEAP_PROPERTIES cbHeapProps(D3D12_HEAP_TYPE_UPLOAD);
-    const CD3DX12_RESOURCE_DESC cbResourceDesc = CD3DX12_RESOURCE_DESC::Buffer(alignedCbSize);
 
     hr = g_d3dDevice->CreateCommittedResource(
         &cbHeapProps,
@@ -327,6 +359,8 @@ bool InitializeDX12(HINSTANCE hInstance)
         nullptr,
         IID_PPV_ARGS(&g_constantBuffer));
     if (FAILED(hr)) return false;
+
+
 
     // 3. Constant Buffer 초기화 및 데이터 복사 (Identity 행렬)
     ObjectConstants objectConstants;
@@ -415,6 +449,9 @@ bool InitializeDX12(HINSTANCE hInstance)
         g_imguiSrvHeap.Get(),
         g_imguiSrvHeap->GetCPUDescriptorHandleForHeapStart(),
         g_imguiSrvHeap->GetGPUDescriptorHandleForHeapStart());
+
+    // 행렬 초기화 함수 호출 추가
+    InitializeMatrices();
 
     return true; // 성공적으로 초기화 완료
 }
@@ -609,6 +646,7 @@ bool CreatePipelineStateObject()
     };
 
 
+
     // ------------------------------------
     // 3. PSO (Pipeline State Object) 구조체 작성
     // ------------------------------------
@@ -698,6 +736,7 @@ void Render()
     ImGui_ImplDX12_NewFrame();
     ImGui_ImplWin32_NewFrame();
     ImGui::NewFrame();
+    ImGuizmo::BeginFrame();
 
     // UI 정의 (화면에 표시될 내용)
     ImGui::Begin("DX12 Editor");
@@ -729,9 +768,44 @@ void Render()
             // LoadModel(filePath); // <- 최종적으로 여기에 FBX 로더가 연결됩니다.
         }
     }
+
+    // 키보드 입력으로 모드 전환
+    if (ImGui::IsKeyPressed(ImGuiKey_W))
+        g_currentOperation = ImGuizmo::TRANSLATE;  // W: 이동
+    if (ImGui::IsKeyPressed(ImGuiKey_E))
+        g_currentOperation = ImGuizmo::ROTATE;     // E: 회전
+    if (ImGui::IsKeyPressed(ImGuiKey_R))
+        g_currentOperation = ImGuizmo::SCALE;      // R: 스케일
+
+    // 로컬/월드 모드 전환
+    if (ImGui::IsKeyPressed(ImGuiKey_T))
+        g_currentMode = (g_currentMode == ImGuizmo::WORLD)
+        ? ImGuizmo::LOCAL
+        : ImGuizmo::WORLD;
+
+
     ImGui::End();
 
-    // ImGui 렌더링 준비 (Draw Data를 최종 생성)
+    XMStoreFloat4x4(&g_ViewMatrixFloat, g_ViewMatrix);
+    XMStoreFloat4x4(&g_ProjectionMatrixFloat, g_ProjectionMatrix);
+    XMStoreFloat4x4(&g_ModelMatrixFloat, g_ModelMatrix);
+
+    ImGuizmo::SetOrthographic(false);
+    ImGuizmo::SetDrawlist(ImGui::GetForegroundDrawList());
+    ImGuizmo::SetRect(0, 0, ImGui::GetIO().DisplaySize.x, ImGui::GetIO().DisplaySize.y);
+
+    // XMFLOAT4X4의 m 배열을 전달
+    ImGuizmo::Manipulate(
+        &g_ViewMatrixFloat.m[0][0],
+        &g_ProjectionMatrixFloat.m[0][0],
+        g_currentOperation,
+        g_currentMode,
+        &g_ModelMatrixFloat.m[0][0]
+    );
+
+    // 조작 후 다시 XMMATRIX로 변환
+    g_ModelMatrix = XMLoadFloat4x4(&g_ModelMatrixFloat);
+
     ImGui::Render();
 
 
@@ -763,7 +837,7 @@ void Render()
     // ------------------------------------------------------------------
 
     XMMATRIX rotationMatrix = XMMatrixRotationX(XMConvertToRadians(90.0f));
-    XMMATRIX world = scaleMatrix * rotationMatrix;
+    XMMATRIX world = scaleMatrix * rotationMatrix * g_ModelMatrix;
     // 2. View 행렬 (카메라 위치 설정)
     // [확인] 현재 카메라 위치는 Z=-5.0f 입니다. 모델이 잘 보이지 않으면 이 값을 조정하세요.
     XMVECTOR eyePos = XMVectorSet(0.0f, 0.0f, -5.0f, 1.0f); // 카메라를 Z=-5에 배치
@@ -819,15 +893,50 @@ void Render()
     const float clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f }; // 파란색
     g_commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
 
+    XMMATRIX WVP = g_ModelMatrix * g_ViewMatrix * g_ProjectionMatrix;
+
+    // (1B) 매핑된 GPU 메모리 포인터에 최신 행렬 데이터 복사
+    // Object Constants (b0) 업데이트
+    XMStoreFloat4x4(&g_constantBufferPtr->WorldViewProj, XMMatrixTranspose(WVP));
+    XMStoreFloat4x4(&g_constantBufferPtr->World, XMMatrixTranspose(g_ModelMatrix));
+
+    // (1C) Material Diffuse 색상 업데이트 (흰색으로 고정)
+    g_constantBufferPtr->MaterialDiffuse = { 1.0f, 1.0f, 1.0f, 1.0f };
+
+    // ------------------------------------
+    // 2. Light Constant Buffer 초기 데이터 복사 (b1)
+    // ------------------------------------
+    // ⚠️ 조명은 매 프레임 업데이트할 필요는 없지만, 초기 데이터를 다시 복사합니다.
+    LightConstants lightData = {
+        {-0.5f, -1.0f, -0.5f},
+        0.0f, // Padding
+        {1.0f, 1.0f, 1.0f, 1.0f}
+    };
+    memcpy(g_lightConstantBufferPtr, &lightData, sizeof(LightConstants));
+
+    // ... (ImGui::Render() 호출 계속) ...
+
+
+    // ------------------------------------
+    // 3. Command List에 CBV 바인딩 (Draw Call 직전)
+    // ------------------------------------
+    // g_commandList->SetGraphicsRootConstantBufferView 호출 직전
+
+    // 🚨 (A) 슬롯 0 (b0)에 Object Constant Buffer 바인딩
+    g_commandList->SetGraphicsRootConstantBufferView(0, g_constantBuffer->GetGPUVirtualAddress());
+
+    // 🚨 (B) 슬롯 1 (b1)에 Light Constant Buffer 바인딩
+    g_commandList->SetGraphicsRootConstantBufferView(1, g_lightConstantBuffer->GetGPUVirtualAddress());
+
     // (3B) 3D Draw Call (삼각형 그리기)
     g_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     g_commandList->IASetVertexBuffers(0, 1, &g_vertexBufferView);
     g_commandList->SetPipelineState(g_pipelineState.Get()); // PSO 설정
 
-    // 🚨 1. 인덱스 버퍼 바인딩 추가 (FBX 모델은 인덱스를 사용)
+    // 1. 인덱스 버퍼 바인딩 추가 (FBX 모델은 인덱스를 사용)
     g_commandList->IASetIndexBuffer(&g_indexBufferView);
 
-    // 🚨 2. Draw Call 변경: DrawInstanced 대신 DrawIndexedInstanced 사용
+    // 2. Draw Call 변경: DrawInstanced 대신 DrawIndexedInstanced 사용
     // g_indexCount: LoadModel 함수에서 계산된 전체 인덱스 개수
     g_commandList->DrawIndexedInstanced(g_indexCount, 1, 0, 0, 0);
 
@@ -1130,4 +1239,32 @@ bool LoadModel(const WCHAR* filePath)
     }
 
     return true;
+}
+
+void InitializeMatrices()
+{
+    using namespace DirectX;
+
+    // Model Matrix (World): 객체의 초기 위치와 회전. (단위 행렬)
+    // 이 행렬이 ImGuizmo에 의해 조작됩니다.
+    g_ModelMatrix = XMMatrixIdentity();
+
+    // View Matrix (카메라): 카메라의 위치 (0, 0, -5)에서 원점 (0, 0, 0)을 바라봅니다.
+    XMVECTOR eye = XMVectorSet(0.0f, 5.0f, -50.0f, 0.0f);
+    XMVECTOR at = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
+    XMVECTOR up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+    g_ViewMatrix = XMMatrixLookAtLH(eye, at, up);
+
+    // Projection Matrix (투영): 원근 투영을 설정합니다.
+    float aspectRatio = 16.0f / 9.0f; // 일반적인 16:9 비율 (또는 클라이언트 창 비율)
+    g_ProjectionMatrix = XMMatrixPerspectiveFovLH(XM_PIDIV4, aspectRatio, 1.0f, 1000.0f);
+
+    // WVP 행렬 계산 (WRL::XMMatrixTranspose는 셰이더 전송 시 필요)
+    DirectX::XMMATRIX WVP = g_ModelMatrix * g_ViewMatrix * g_ProjectionMatrix;
+
+    // 행렬을 전치(Transpose)하여 Constant Buffer에 저장
+    DirectX::XMStoreFloat4x4(
+        &g_constantBufferPtr->WorldViewProj,                // 저장할 XMFLOAT4X4 구조체의 주소
+        DirectX::XMMatrixTranspose(WVP)             // 저장할 XMMATRIX 값 (전치된 상태)
+    );
 }

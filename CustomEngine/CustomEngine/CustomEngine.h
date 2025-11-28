@@ -87,7 +87,6 @@ bool LoadModel(const WCHAR* filePath);
 
 // 전역 변수 정의 (ComPtr<ID3D12Resource>는 C++ 파일 상단 또는 헤더에 정의)
 ComPtr<ID3D12Resource> g_constantBuffer;
-UINT8* g_constantBufferPtr;
 
 
 struct ObjectConstants {
@@ -98,12 +97,12 @@ struct ObjectConstants {
 
 struct LightConstants {
     DirectX::XMFLOAT3 LightDirection; // 광원의 방향 (월드 공간)
-    float Pad;
+    float Padding;
     DirectX::XMFLOAT4 LightColor;     // 광원의 색상 (RGBA)
 };
 
 ComPtr<ID3D12Resource> g_lightConstantBuffer;
-UINT8* g_lightConstantBufferPtr;
+LightConstants* g_lightConstantBufferPtr;
 // ...
 
 // [추가] Light 데이터 초기값
@@ -112,3 +111,15 @@ LightConstants g_mainLight = {
     0.0f,                    // Pad
     { 1.0f, 1.0f, 1.0f, 1.0f } // LightColor (흰색)
 };
+
+DirectX::XMMATRIX g_ModelMatrix;      // 정의 추가
+DirectX::XMMATRIX g_ViewMatrix;       // 정의 추가
+DirectX::XMMATRIX g_ProjectionMatrix; // 정의 추가
+void InitializeMatrices();
+
+// DX12 전역 객체 extern 선언부에 추가
+ObjectConstants* g_constantBufferPtr;
+
+DirectX::XMFLOAT4X4 g_ViewMatrixFloat;
+DirectX::XMFLOAT4X4 g_ProjectionMatrixFloat;
+DirectX::XMFLOAT4X4 g_ModelMatrixFloat;

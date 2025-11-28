@@ -14,6 +14,7 @@ cbuffer cbObject : register(b0)
 cbuffer cbLight : register(b1)
 {
     float3 gLightDirection; // 광원의 방향
+    float Padding; // 4 bytes 패딩 추가 (12 + 4 = 16바이트 정렬)
     float4 gLightColor; // 광원의 색상
 };
 

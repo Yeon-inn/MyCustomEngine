@@ -254,6 +254,7 @@
     <ClInclude Include="..\..\..\imgui-master\imgui-master\backends\imgui_impl_win32.h" />
     <ClInclude Include="..\..\..\imgui-master\imgui-master\imconfig.h" />
     <ClInclude Include="..\..\..\imgui-master\imgui-master\imgui.h" />
+    <ClInclude Include="..\..\..\ImGuizmo-master\ImGuizmo-master\ImGuizmo.h" />
     <ClInclude Include="..\directx\d3dx12.h" />
     <ClInclude Include="CustomEngine.h" />
   </ItemGroup>
@@ -264,6 +265,7 @@
     <ClCompile Include="..\..\..\imgui-master\imgui-master\imgui_draw.cpp" />
     <ClCompile Include="..\..\..\imgui-master\imgui-master\imgui_tables.cpp" />
     <ClCompile Include="..\..\..\imgui-master\imgui-master\imgui_widgets.cpp" />
+    <ClCompile Include="..\..\..\ImGuizmo-master\ImGuizmo-master\ImGuizmo.cpp" />
     <ClCompile Include="CustomEngine.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -282,21 +284,26 @@
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
-    <Midl Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\d3d12.idl" />
-    <Midl Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\d3d12compatibility.idl" />
-    <Midl Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\d3d12compiler.idl">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </Midl>
-    <Midl Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\D3D12MarkerApiEnums.idl" />
-    <Midl Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\d3d12sdklayers.idl" />
-    <Midl Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\d3d12video.idl" />
-    <Midl Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\d3dcommon.idl" />
-    <Midl Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\d3dshadercacheregistration.idl" />
-    <Midl Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\dxgicommon.idl" />
-    <Midl Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\dxgiformat.idl" />
+    <Text Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\d3d12.idl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+    </Text>
+    <Text Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\d3d12compatibility.idl" />
+    <Text Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\d3d12compiler.idl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+    </Text>
+    <Text Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\D3D12MarkerApiEnums.idl" />
+    <Text Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\d3d12sdklayers.idl" />
+    <Text Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\d3d12video.idl" />
+    <Text Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\d3dcommon.idl" />
+    <Text Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\d3dshadercacheregistration.idl" />
+    <Text Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\dxgicommon.idl" />
+    <Text Include="..\..\..\DirectX-Headers-main\DirectX-Headers-main\include\directx\dxgiformat.idl" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\assimp-master\assimp-master\include\assimp\color4.inl" />

@@ -2,7 +2,7 @@
 
 본 프로젝트는 **DirectX 12(D3D12)** 로우 레벨 API를 활용하여 실시간 렌더링 파이프라인을 구축하고, **Assimp**를 이용한 외부 모델 로딩 및 **ImGuizmo**를 통한 시각적 트랜스폼 에디팅 환경을 구현하는 것을 목표로 합니다.
 
-<img width="290" height="270" alt="Image" src="https://github.com/user-attachments/assets/36de7104-32f0-4526-b82d-0ca2ebd902b0" /> <img width="290" height="270" alt="Image" src="https://github.com/user-attachments/assets/c0b791e5-e28f-4ffd-aaa9-a1f29947522e" />  <img width="290" height="270" alt="Image" src="https://github.com/user-attachments/assets/c671f9c2-bc50-421d-b55c-a1bcd0a264d7" /> 
+<img width="280" height="270" alt="Image" src="https://github.com/user-attachments/assets/36de7104-32f0-4526-b82d-0ca2ebd902b0" /> <img width="280" height="270" alt="Image" src="https://github.com/user-attachments/assets/c0b791e5-e28f-4ffd-aaa9-a1f29947522e" />  <img width="280" height="270" alt="Image" src="https://github.com/user-attachments/assets/c671f9c2-bc50-421d-b55c-a1bcd0a264d7" /> 
 
 ## 1. 개요 (Abstract)
 현대의 실시간 렌더링 환경에서 GPU 연산 능력을 극대화하기 위해 D3D12 파이프라인 메커니즘을 분석했습니다. 스왑 체인 기술을 통한 화면 안정성 확보, Descriptor Heap을 이용한 리소스 통신, 그리고 3D 공간의 정점을 2D 화면으로 투영하는 기하 변환 원리를 실무 코드로 구현했습니다.
